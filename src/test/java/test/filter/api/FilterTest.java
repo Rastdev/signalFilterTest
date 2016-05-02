@@ -13,16 +13,22 @@ public class FilterTest {
     private static final int numberOfSignalsProducers = 3;
 
     private static class RandomFilter implements Filter {
-        private final Random rnd = new Random();
+        private AtomicInteger counter = new AtomicInteger();
+        private final int limit;
 
         /** @param N maximum number of signals per last 100 seconds */
         private RandomFilter (int N) {
-            // this dummy implementation ignores the limit parameter
+            this.limit = N;
         }
 
         @Override
         public boolean isSignalAllowed() {
-            return rnd.nextBoolean();
+            if (counter.get() < limit){
+                counter.incrementAndGet();
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
@@ -52,7 +58,7 @@ public class FilterTest {
 
     public static void main (String ... args) throws InterruptedException {
         final int N = 100;
-        Filter filter = new RandomFilter(N); //TODO: replace by your implementation
+        Filter filter = new RandomFilter(N);
 
         AtomicInteger totalPassed = new AtomicInteger();
         Thread [] producers = new Thread[numberOfSignalsProducers];
