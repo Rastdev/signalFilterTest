@@ -35,6 +35,7 @@ public class FilterTest {
                 lock.lock();
                 if (System.currentTimeMillis() - time > 1000) {
                     counter = 1;
+                    time = System.currentTimeMillis();
                     lock.unlock();
                     return true;
                 } else if (counter < limit) {
