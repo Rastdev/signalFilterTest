@@ -2,6 +2,8 @@ package test.filter.api;
 
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This is a small app that demonstrates how a {@link Filter} can be used.
@@ -13,19 +15,46 @@ public class FilterTest {
     private static final int numberOfSignalsProducers = 3;
 
     private static class RandomFilter implements Filter {
-        private AtomicInteger counter = new AtomicInteger();
         private final int limit;
+        private int counter;
+        private long time;
+        private Lock lock;
 
         /** @param N maximum number of signals per last 100 seconds */
         private RandomFilter (int N) {
             this.limit = N;
+            this.counter = 0;
+            this.time = System.currentTimeMillis();
+            this.lock = new ReentrantLock();
         }
 
         @Override
         public boolean isSignalAllowed() {
-            if (counter.get() < limit){
-                counter.incrementAndGet();
-                return true;
+            long elapsedTime = System.currentTimeMillis() - time;
+            if (elapsedTime > 1000) {
+                lock.lock();
+                if (System.currentTimeMillis() - time > 1000) {
+                    counter = 1;
+                    lock.unlock();
+                    return true;
+                } else if (counter < limit) {
+                    counter++;
+                    lock.unlock();
+                    return true;
+                } else {
+                    lock.unlock();
+                    return false;
+                }
+            } else if (counter < limit) {
+                lock.lock();
+                if (counter < limit) {
+                    counter++;
+                    lock.unlock();
+                    return true;
+                } else {
+                    lock.unlock();
+                    return false;
+                }
             } else {
                 return false;
             }
