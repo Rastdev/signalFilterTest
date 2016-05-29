@@ -1,6 +1,9 @@
 package test.filter.api;
 
+import test.filter.impl.RateFilter;
+
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -15,50 +18,16 @@ public class FilterTest {
     private static final int numberOfSignalsProducers = 3;
 
     private static class RandomFilter implements Filter {
-        private final int limit;
-        private int counter;
-        private long time;
-        private Lock lock;
+        private final Random rnd = new Random();
 
         /** @param N maximum number of signals per last 100 seconds */
         private RandomFilter (int N) {
-            this.limit = N;
-            this.counter = 0;
-            this.time = System.currentTimeMillis();
-            this.lock = new ReentrantLock();
+            // this dummy implementation ignores the limit parameter
         }
 
         @Override
         public boolean isSignalAllowed() {
-            long elapsedTime = System.currentTimeMillis() - time;
-            if (elapsedTime > 1000) {
-                lock.lock();
-                if (System.currentTimeMillis() - time > 1000) {
-                    counter = 1;
-                    time = System.currentTimeMillis();
-                    lock.unlock();
-                    return true;
-                } else if (counter < limit) {
-                    counter++;
-                    lock.unlock();
-                    return true;
-                } else {
-                    lock.unlock();
-                    return false;
-                }
-            } else if (counter < limit) {
-                lock.lock();
-                if (counter < limit) {
-                    counter++;
-                    lock.unlock();
-                    return true;
-                } else {
-                    lock.unlock();
-                    return false;
-                }
-            } else {
-                return false;
-            }
+            return rnd.nextBoolean();
         }
     }
 
@@ -88,7 +57,7 @@ public class FilterTest {
 
     public static void main (String ... args) throws InterruptedException {
         final int N = 100;
-        Filter filter = new RandomFilter(N);
+        Filter filter = new RateFilter(N, TimeUnit.MINUTES);
 
         AtomicInteger totalPassed = new AtomicInteger();
         Thread [] producers = new Thread[numberOfSignalsProducers];
